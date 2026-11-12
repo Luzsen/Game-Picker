@@ -30,14 +30,9 @@
             }
           },
           animation: {
-            'pulse-glow': 'pulseGlow 3s infinite alternate',
             'spin-once': 'spinOnce 0.6s ease-in-out',
           },
           keyframes: {
-            pulseGlow: {
-              '0%': { boxShadow: '0 0 15px rgba(139, 92, 246, 0.2)' },
-              '100%': { boxShadow: '0 0 35px rgba(0, 243, 255, 0.4)' },
-            },
             spinOnce: {
               '0%': { transform: 'rotate(0deg) scale(1)' },
               '50%': { transform: 'rotate(180deg) scale(1.25)' },
@@ -84,7 +79,6 @@
     details > summary::-webkit-details-marker { display: none; }
     .chev { color: #00f3ff; transition: transform 0.3s ease, color 0.3s ease; display: inline-block; }
     details[open] .chev { transform: rotate(180deg); color: #8b5cf6; }
-    input[type="range"] { accent-color: #00f3ff; }
     button:disabled { opacity: 0.6; cursor: not-allowed; }
 
     #gameCard {
@@ -323,7 +317,6 @@
       ? 'http://localhost:3000'
       : '';
 
-    const TIER_RANGES = {};
     let currentGameId = null;
     let availableTotalCount = 0;
     let isFetching = false;
@@ -333,6 +326,7 @@
     const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
     function playBeepSound() {
+      if (!audioEnabled) return;
       try {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (!AudioCtx) return;
@@ -359,11 +353,7 @@
     function toggleAudio() {
       audioEnabled = !audioEnabled;
       const icon = document.getElementById('soundIcon');
-      if (audioEnabled) {
-        icon.className = 'fa-solid fa-volume-high';
-      } else {
-        icon.className = 'fa-solid fa-volume-xmark';
-      }
+      icon.className = audioEnabled ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark';
     }
 
     function escapeHTML(str) {
@@ -394,13 +384,13 @@
       } else if (p.includes('ps3') || p.includes('playstation')) {
         bgClass = 'bg-indigo-950/60 text-indigo-300 border-indigo-700/40';
         icon = '<i class="fa-brands fa-playstation text-indigo-400 text-xs"></i>';
-      } else if (p.includes('series') || p.includes('xbox series')) {
+      } else if (p.includes('series')) {
         bgClass = 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50';
         icon = '<i class="fa-brands fa-xbox text-emerald-400 text-xs"></i>';
-      } else if (p.includes('xbox one') || p.includes('xbox')) {
+      } else if (p.includes('xbox')) {
         bgClass = 'bg-emerald-950/70 text-emerald-300 border-emerald-600/40';
         icon = '<i class="fa-brands fa-xbox text-emerald-400 text-xs"></i>';
-      } else if (p.includes('switch') || p.includes('nintendo switch')) {
+      } else if (p.includes('switch')) {
         bgClass = 'bg-rose-950/80 text-rose-300 border-rose-500/50';
         icon = '<i class="fa-solid fa-gamepad text-rose-400 text-xs"></i>';
       } else if (p.includes('nintendo') || p.includes('wii') || p.includes('3ds')) {
@@ -541,7 +531,6 @@
         : ['Multiplatform'];
 
       const genre = (raw.genres && raw.genres.length) ? raw.genres.map(g => g.name).join(', ') : 'General';
-
       const metaScore = typeof raw.aggregated_rating === 'number' ? Math.round(raw.aggregated_rating / 10) : null;
 
       return {
@@ -576,7 +565,8 @@
           headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
           body: JSON.stringify({ where, exclude: currentGameId })
-        });        const data = await res.json().catch(() => ({}));
+        });
+        const data = await res.json().catch(() => ({}));
         if (!res.ok || data.error) throw new Error(data.error || data.details || 'Failed to communicate with the server.');
         if (!data.game) throw new Error('No game returned by the server.');
         return formatGame(data.game);
@@ -626,7 +616,6 @@
       $('btnIGDB').href = game.igdbUrl;
 
       const scoreEl = $('gameScore');
-      const labelEl = $('scoreLabel');
       const badgeAnchor = $('scoreBadgeAnchor');
 
       badgeAnchor.href = game.igdbUrl;
@@ -698,22 +687,14 @@
     async function populateSelect(selectId, endpoint, query) {
       const storageKey = `igdb_${endpoint}`;
       try {
+        let items;
         const cached = sessionStorage.getItem(storageKey);
         if (cached) {
-          const items = JSON.parse(cached);
-          const sel = $(selectId);
-          if (items && items.length) {
-            items.forEach(it => {
-              const opt = document.createElement('option');
-              opt.value = it.id;
-              opt.textContent = it.name;
-              sel.appendChild(opt);
-            });
-          }
-          return items;
+          items = JSON.parse(cached);
+        } else {
+          items = await queryIGDB(endpoint, query);
+          sessionStorage.setItem(storageKey, JSON.stringify(items || []));
         }
-        const items = await queryIGDB(endpoint, query);
-        sessionStorage.setItem(storageKey, JSON.stringify(items || []));
         const sel = $(selectId);
         if (items && items.length) {
           items.forEach(it => {
