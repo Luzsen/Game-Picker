@@ -14,7 +14,7 @@ Random game picker with cyberpunk glassmorphism design, powered by the IGDB API.
 ## Requirements
 
 - Node.js 20.12+ (for `process.loadEnvFile`) or set environment variables manually
-- IGDB API credentials (Client ID, Client Secret, Access Token) from the [Twitch Developer Portal](https://dev.twitch.tv/)
+- [IGDB API credentials](https://api-docs.igdb.com) (Client ID, Client Secret, Access Token) from the [Twitch Developer Portal](https://dev.twitch.tv/)
 
 ## Self-Hosting
 
