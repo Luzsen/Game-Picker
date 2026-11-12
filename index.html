@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Picker</title>
+  <link rel="icon" href="/ico/site.ico">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Space Grotesk', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              cyan: '#00f3ff',
+              purple: '#8b5cf6',
+              neon: '#a855f7',
+              dark: '#090d16',
+              card: 'rgba(15, 23, 42, 0.75)'
+            }
+          },
+          animation: {
+            'pulse-glow': 'pulseGlow 3s infinite alternate',
+            'spin-once': 'spinOnce 0.6s ease-in-out',
+          },
+          keyframes: {
+            pulseGlow: {
+              '0%': { boxShadow: '0 0 15px rgba(139, 92, 246, 0.2)' },
+              '100%': { boxShadow: '0 0 35px rgba(0, 243, 255, 0.4)' },
+            },
+            spinOnce: {
+              '0%': { transform: 'rotate(0deg) scale(1)' },
+              '50%': { transform: 'rotate(180deg) scale(1.25)' },
+              '100%': { transform: 'rotate(360deg) scale(1)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    .bg-cyber-grid {
+      background-color: #070a12;
+      background-image:
+        radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.15) 0%, transparent 60%),
+        radial-gradient(circle at 85% 70%, rgba(0, 243, 255, 0.08) 0%, transparent 50%),
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+    }
+
+    .glass-card {
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .glass-badge {
+      background: rgba(30, 41, 59, 0.6);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #090d16; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type="number"] { -moz-appearance: textfield; }
+    details > summary { list-style: none; }
+    details > summary::-webkit-details-marker { display: none; }
+    .chev { color: #00f3ff; transition: transform 0.3s ease, color 0.3s ease; display: inline-block; }
+    details[open] .chev { transform: rotate(180deg); color: #8b5cf6; }
+    input[type="range"] { accent-color: #00f3ff; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    #gameCard {
+      animation: fadeInScale 0.45s ease-out both;
+    }
+
+    @keyframes fadeInScale {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+
+<body class="bg-cyber-grid text-slate-100 min-h-screen font-sans flex flex-col justify-between selection:bg-cyan-500 selection:text-slate-950">
+
+  <header class="w-full border-b border-slate-800/80 bg-slate-950/60 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="randomizeGame()">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-purple-500/30">
+          <i class="fa-solid font-black fa-dice-d20 text-xl text-slate-950"></i>
+        </div>
+        <div>
+          <h1 class="font-display font-extrabold text-xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400">
+            GAME <span class="text-cyan-400">PICKER</span>
+          </h1>
+          <p class="text-xs text-slate-400 tracking-wider uppercase font-medium">Randomizer</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <div id="igdbBadge" class="glass-badge px-3 py-1.5 rounded-full flex items-center space-x-2 text-xs font-semibold text-slate-300">
+          <span class="relative flex h-2 w-2">
+            <span id="igdbPing" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+            <span id="igdbDot" class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+          </span>
+          <span id="igdbText" class="text-slate-300 font-semibold">API: Connecting...</span>
+        </div>
+        <button id="soundToggle" onclick="toggleAudio()" class="p-2 rounded-lg glass-badge text-slate-400 hover:text-cyan-400 transition-colors" title="Toggle sound effects">
+          <i id="soundIcon" class="fa-solid fa-volume-high"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 py-8 md:py-10 flex-grow flex flex-col items-center justify-center w-full">
+
+    <details id="filters" class="w-full max-w-4xl mb-8 glass-card rounded-2xl border border-slate-700/60 transition-all">
+      <summary class="flex cursor-pointer items-center justify-between gap-4 px-6 py-4 rounded-2xl hover:bg-slate-800/30 transition">
+        <div class="flex items-center gap-2.5">
+          <i class="fa-solid fa-sliders text-cyan-400 text-sm"></i>
+          <span class="font-display font-bold text-sm sm:text-base text-white tracking-wide">Draw Filters</span>
+          <span class="text-xs text-slate-400 font-normal">optional</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span id="count" class="px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+            Calculating...
+          </span>
+          <i class="fa-solid fa-chevron-down chev text-xs"></i>
+        </div>
+      </summary>
+
+      <div class="grid gap-4 border-t border-slate-800/80 p-6 sm:grid-cols-2 lg:grid-cols-3 text-xs">
+        <div>
+          <label for="f-plat" class="block font-semibold uppercase tracking-wider text-[11px] text-slate-400 mb-1.5">Platform</label>
+          <select id="f-plat" class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-slate-200 outline-none focus:border-cyan-400 transition">
+            <option value="">All</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="f-genre" class="block font-semibold uppercase tracking-wider text-[11px] text-slate-400 mb-1.5">Genre</label>
+          <select id="f-genre" class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-slate-200 outline-none focus:border-cyan-400 transition">
+            <option value="">All</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="f-mode" class="block font-semibold uppercase tracking-wider text-[11px] text-slate-400 mb-1.5">Game Mode</label>
+          <select id="f-mode" class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-slate-200 outline-none focus:border-cyan-400 transition">
+            <option value="">All</option>
+          </select>
+        </div>
+
+        <div class="sm:col-span-1 lg:col-span-2">
+          <label class="block font-semibold uppercase tracking-wider text-[11px] text-slate-400 mb-1.5">Release Year</label>
+          <div class="flex items-center gap-2">
+            <input id="f-from" type="number" min="1980" max="2026" placeholder="From" class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl px-3 py-2 text-slate-200 placeholder:text-slate-500 outline-none focus:border-cyan-400">
+            <span class="text-slate-500 font-medium">to</span>
+            <input id="f-to" type="number" min="1980" max="2026" placeholder="To" class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl px-3 py-2 text-slate-200 placeholder:text-slate-500 outline-none focus:border-cyan-400">
+          </div>
+        </div>
+
+        <div class="flex items-center sm:col-span-1 lg:col-span-1 pt-6">
+          <label class="flex items-center gap-2 text-xs text-slate-300 font-medium cursor-pointer">
+            <input id="f-video" type="checkbox" checked class="w-4 h-4 rounded border-slate-700 text-cyan-400 focus:ring-0 bg-slate-900 cursor-pointer">
+            <span>Only games with official trailer</span>
+          </label>
+        </div>
+
+        <div class="flex items-center justify-between sm:col-span-2 lg:col-span-3 pt-2 border-t border-slate-800/60">
+          <button id="clearFilters" type="button" class="text-cyan-400 hover:text-cyan-300 font-semibold transition cursor-pointer flex items-center gap-1.5">
+            <i class="fa-solid fa-rotate-left text-xs"></i> Clear filters
+          </button>
+          <p id="emptyWarning" class="text-rose-400 font-medium text-xs hidden">No games found with these filters.</p>
+        </div>
+      </div>
+    </details>
+
+    <div class="w-full max-w-4xl relative group">
+
+      <div class="absolute -inset-1 bg-gradient-to-r from-purple-600/30 via-cyan-500/20 to-purple-800/30 rounded-3xl blur-xl opacity-75 group-hover:opacity-100 transition duration-1000"></div>
+
+      <div id="gameCard" class="relative glass-card rounded-2xl p-6 md:p-8 shadow-2xl transition-all duration-300 transform scale-100 opacity-100">
+
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 items-stretch">
+
+          <div class="md:col-span-5 lg:col-span-4 flex flex-col items-center">
+            <div class="relative w-full aspect-[2/3] rounded-xl overflow-hidden shadow-2xl border border-slate-700/60 group/img bg-slate-900">
+              <img
+                id="gameCover"
+                src=""
+                alt="Game Cover"
+                class="w-full h-full object-cover transition-transform duration-700 group-hover/img:scale-105"
+                onerror="this.onerror=null; this.src='https://placehold.co/600x900/0f172a/94a3b8?text=Cover+Unavailable'"
+              />
+              <a id="scoreBadgeAnchor" href="#" target="_blank" rel="noopener noreferrer" class="absolute top-3 right-3 bg-slate-950/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-700 flex items-center space-x-2 shadow-xl hover:border-yellow-400 hover:scale-105 active:scale-95 transition-all group/meta cursor-pointer" title="Open game on IGDB">
+                <span id="scoreLabel" class="text-[10px] font-bold uppercase tracking-wider text-slate-300 font-mono group-hover/meta:text-yellow-400 transition-colors">IGDB Score</span>
+                <span id="gameScore" class="font-display font-extrabold text-sm px-1.5 py-0.5 rounded text-white bg-slate-800">--</span>
+                <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-slate-400 group-hover/meta:text-yellow-400 transition-colors"></i>
+              </a>
+            </div>
+          </div>
+
+          <div class="md:col-span-7 lg:col-span-8 flex flex-col justify-between space-y-5">
+
+            <div>
+              <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+                <span id="gameGenreBadge" class="px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase bg-purple-950/80 text-purple-300 border border-purple-500/30">
+                  Loading
+                </span>
+                <span id="gameYear" class="text-xs font-semibold text-slate-400 flex items-center">
+                  <i class="fa-regular fa-calendar mr-1.5 text-cyan-400"></i> ----
+                </span>
+              </div>
+              <h2 id="gameTitle" class="text-2xl sm:text-3xl lg:text-4xl font-display font-extrabold text-white tracking-tight mt-2 leading-tight">
+                Connecting to Archive...
+              </h2>
+              <p id="gameDevPub" class="text-xs sm:text-sm text-cyan-400/90 font-medium mt-1">
+                Please wait a moment
+              </p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-xs sm:text-sm bg-slate-900/60 p-3.5 rounded-xl border border-slate-800/80">
+              <div>
+                <span class="text-slate-400 block text-[11px] uppercase tracking-wider font-semibold">Developer</span>
+                <span id="gameDev" class="font-medium text-slate-200">--</span>
+              </div>
+              <div>
+                <span class="text-slate-400 block text-[11px] uppercase tracking-wider font-semibold">Publisher</span>
+                <span id="gamePub" class="font-medium text-slate-200">--</span>
+              </div>
+            </div>
+
+            <div>
+              <h3 class="text-xs uppercase tracking-wider font-bold text-slate-400 mb-1.5 flex items-center">
+                <i class="fa-solid fa-align-left text-cyan-400 mr-1.5"></i> About the Game
+              </h3>
+              <p id="gameSynopsis" class="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal line-clamp-4">
+                Fetching official information from IGDB database...
+              </p>
+            </div>
+
+            <div>
+              <h3 class="text-xs uppercase tracking-wider font-bold text-slate-400 mb-2 flex items-center">
+                <i class="fa-solid fa-gamepad text-purple-400 mr-1.5"></i> Available Platforms
+              </h3>
+              <div id="gamePlatforms" class="flex flex-wrap gap-2"></div>
+            </div>
+
+            <div class="pt-2 flex flex-wrap items-center gap-3 border-t border-slate-800/60">
+              <a id="btnTrailer" href="#" target="_blank" rel="noopener noreferrer" class="px-3.5 py-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/40 text-xs font-semibold transition-all flex items-center space-x-1.5">
+                <i class="fa-brands fa-youtube text-red-500"></i>
+                <span>View Trailer</span>
+              </a>
+              <a id="btnGoogle" href="#" target="_blank" rel="noopener noreferrer" class="px-3.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-cyan-600/20 hover:text-cyan-400 text-xs font-semibold text-slate-300 border border-slate-700/60 transition-all flex items-center space-x-1.5">
+                <i class="fa-solid fa-magnifying-glass text-cyan-400"></i>
+                <span>Search Game</span>
+              </a>
+              <a id="btnIGDB" href="#" target="_blank" rel="noopener noreferrer" class="px-3.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-purple-600/20 hover:text-purple-400 text-xs font-semibold text-slate-300 border border-slate-700/60 transition-all flex items-center space-x-1.5">
+                <i class="fa-solid fa-database text-purple-400"></i>
+                <span>IGDB Page</span>
+              </a>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="mt-10 flex flex-col items-center space-y-3">
+      <button
+        id="btnRandomize"
+        onclick="randomizeGame()"
+        class="group relative inline-flex items-center justify-center px-8 py-4 sm:px-10 sm:py-5 font-display font-extrabold text-base sm:text-lg tracking-wider uppercase text-slate-950 bg-gradient-to-r from-cyan-400 via-purple-400 to-cyan-300 rounded-2xl shadow-[0_0_30px_rgba(0,243,255,0.4)] hover:shadow-[0_0_45px_rgba(168,85,247,0.6)] transform hover:-translate-y-1 active:translate-y-0.5 transition-all duration-200 overflow-hidden cursor-pointer"
+      >
+        <div class="absolute inset-0 w-1/2 h-full bg-white/30 skew-x-12 -translate-x-full group-hover:translate-x-[300%] transition-transform duration-1000"></div>
+
+        <i id="diceIcon" class="fa-solid fa-dice-five text-2xl mr-3 text-slate-950 group-hover:rotate-180 transition-transform duration-500"></i>
+        <span id="btnRandomizeLabel">RANDOMIZE</span>
+      </button>
+
+      <p id="errorMsg" class="text-rose-400 text-sm font-medium hidden"></p>
+
+      <p class="text-xs text-slate-500 font-medium flex items-center">
+        Tip: Press <kbd class="px-2 py-0.5 ml-1 mr-1 bg-slate-800 rounded text-slate-300 font-mono text-[11px] font-bold">Space</kbd> <span class="mx-1 text-slate-500">or</span> <kbd class="px-2 py-0.5 mr-1 bg-slate-800 rounded text-slate-300 font-mono text-[11px] font-bold">R</kbd> to draw!
+      </p>
+    </div>
+
+  </main>
+
+  <footer class="w-full border-t border-slate-900 bg-slate-950/80 py-6">
+    <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500 space-y-2">
+      <p>Game Picker © 2026 — Data integrated with IGDB.</p>
+      <a href="https://github.com/Luzsen/Game-Picker" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 hover:underline transition-colors mt-6">
+        <i class="fa-brands fa-github mr-1"></i> View on GitHub
+      </a>
+    </div>
+  </footer>
+
+  <script>
+    const API_BASE = (window.location.protocol === 'file:' || window.location.port !== '3000')
+      ? 'http://localhost:3000'
+      : '';
+
+    const TIER_RANGES = {};
+    let currentGameId = null;
+    let availableTotalCount = 0;
+    let isFetching = false;
+    let audioEnabled = true;
+
+    const $ = (id) => document.getElementById(id);
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+    function playBeepSound() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(320, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12);
+
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start();
+        osc.stop(ctx.currentTime + 0.15);
+        osc.onended = () => ctx.close();
+      } catch (e) {}
+    }
+
+    function toggleAudio() {
+      audioEnabled = !audioEnabled;
+      const icon = document.getElementById('soundIcon');
+      if (audioEnabled) {
+        icon.className = 'fa-solid fa-volume-high';
+      } else {
+        icon.className = 'fa-solid fa-volume-xmark';
+      }
+    }
+
+    function escapeHTML(str) {
+      return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function getPlatformBadgeHTML(platform) {
+      let bgClass = 'bg-slate-800/80 text-slate-300 border-slate-700/60';
+      let icon = '<i class="fa-solid fa-gamepad text-cyan-400 text-xs"></i>';
+
+      const p = platform.toLowerCase();
+
+      if (p.includes('pc') || p.includes('windows')) {
+        bgClass = 'bg-blue-950/80 text-blue-300 border-blue-500/40';
+        icon = '<i class="fa-brands fa-windows text-blue-400 text-xs"></i>';
+      } else if (p.includes('mac') || p.includes('apple') || p.includes('ios')) {
+        bgClass = 'bg-slate-900/90 text-slate-200 border-slate-600/50';
+        icon = '<i class="fa-brands fa-apple text-slate-300 text-xs"></i>';
+      } else if (p.includes('linux')) {
+        bgClass = 'bg-amber-950/80 text-amber-300 border-amber-500/40';
+        icon = '<i class="fa-brands fa-linux text-amber-400 text-xs"></i>';
+      } else if (p.includes('ps5') || p.includes('playstation 5')) {
+        bgClass = 'bg-indigo-950/80 text-indigo-300 border-indigo-500/50';
+        icon = '<i class="fa-brands fa-playstation text-indigo-400 text-xs"></i>';
+      } else if (p.includes('ps4') || p.includes('playstation 4')) {
+        bgClass = 'bg-indigo-950/70 text-indigo-300 border-indigo-600/40';
+        icon = '<i class="fa-brands fa-playstation text-indigo-400 text-xs"></i>';
+      } else if (p.includes('ps3') || p.includes('playstation')) {
+        bgClass = 'bg-indigo-950/60 text-indigo-300 border-indigo-700/40';
+        icon = '<i class="fa-brands fa-playstation text-indigo-400 text-xs"></i>';
+      } else if (p.includes('series') || p.includes('xbox series')) {
+        bgClass = 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50';
+        icon = '<i class="fa-brands fa-xbox text-emerald-400 text-xs"></i>';
+      } else if (p.includes('xbox one') || p.includes('xbox')) {
+        bgClass = 'bg-emerald-950/70 text-emerald-300 border-emerald-600/40';
+        icon = '<i class="fa-brands fa-xbox text-emerald-400 text-xs"></i>';
+      } else if (p.includes('switch') || p.includes('nintendo switch')) {
+        bgClass = 'bg-rose-950/80 text-rose-300 border-rose-500/50';
+        icon = '<i class="fa-solid fa-gamepad text-rose-400 text-xs"></i>';
+      } else if (p.includes('nintendo') || p.includes('wii') || p.includes('3ds')) {
+        bgClass = 'bg-red-950/80 text-red-300 border-red-500/40';
+        icon = '<i class="fa-solid fa-gamepad text-red-400 text-xs"></i>';
+      } else if (p.includes('android')) {
+        bgClass = 'bg-emerald-950/70 text-emerald-300 border-emerald-500/40';
+        icon = '<i class="fa-brands fa-android text-emerald-400 text-xs"></i>';
+      }
+
+      return `
+        <span class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-xs font-medium border ${bgClass}">
+          ${icon}
+          <span>${escapeHTML(platform)}</span>
+        </span>
+      `;
+    }
+
+    async function queryIGDB(endpoint, query) {
+      const res = await fetch(`${API_BASE}/api/igdb/${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: query
+      });
+      if (!res.ok) throw new Error(`IGDB ${endpoint} failed`);
+      return await res.json();
+    }
+
+    function buildWhereClause() {
+      const platId = $('f-plat').value;
+      const genreId = $('f-genre').value;
+      const modeId = $('f-mode').value;
+      const fromYear = parseInt($('f-from').value, 10);
+      const toYear = parseInt($('f-to').value, 10);
+      const onlyWithVideo = $('f-video').checked;
+
+      let where = 'where cover != null & name != null';
+
+      if (onlyWithVideo) where += ' & videos != null';
+      if (platId) where += ` & platforms = (${parseInt(platId, 10)})`;
+      if (genreId) where += ` & genres = (${parseInt(genreId, 10)})`;
+      if (modeId) where += ` & game_modes = (${parseInt(modeId, 10)})`;
+
+      if (!isNaN(fromYear) && fromYear >= 1980) {
+        const fromTimestamp = Math.floor(new Date(fromYear, 0, 1).getTime() / 1000);
+        where += ` & first_release_date >= ${fromTimestamp}`;
+      }
+      if (!isNaN(toYear) && toYear <= 2026) {
+        const toTimestamp = Math.floor(new Date(toYear, 11, 31, 23, 59, 59).getTime() / 1000);
+        where += ` & first_release_date <= ${toTimestamp}`;
+      }
+
+      return where;
+    }
+
+    function showError(msg) {
+      const el = $('errorMsg');
+      if (!msg) { el.classList.add('hidden'); el.textContent = ''; return; }
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    async function updateFiltersCount() {
+      const where = buildWhereClause();
+      const storageKey = `igdb_count_${btoa(where)}`;
+
+      try {
+        const cached = sessionStorage.getItem(storageKey);
+        if (cached) {
+          const data = JSON.parse(cached);
+          availableTotalCount = data.count;
+          $('count').textContent = `${availableTotalCount.toLocaleString('en-US')} games available`;
+          $('emptyWarning').classList.toggle('hidden', availableTotalCount > 0);
+          $('btnRandomize').disabled = isFetching || availableTotalCount === 0;
+          return;
+        }
+
+        const countRes = await queryIGDB('games/count', `${where};`);
+        availableTotalCount = (countRes && typeof countRes.count === 'number') ? countRes.count : 0;
+        sessionStorage.setItem(storageKey, JSON.stringify({ count: availableTotalCount }));
+        $('count').textContent = `${availableTotalCount.toLocaleString('en-US')} games available`;
+        $('emptyWarning').classList.toggle('hidden', availableTotalCount > 0);
+        $('btnRandomize').disabled = isFetching || availableTotalCount === 0;
+      } catch (e) {
+        $('count').textContent = 'Filters active';
+      }
+    }
+
+    let filterTimer;
+    function onFilterChange() {
+      clearTimeout(filterTimer);
+      filterTimer = setTimeout(updateFiltersCount, 250);
+    }
+
+    ['input', 'change'].forEach(ev => { $('filters').addEventListener(ev, onFilterChange); });
+
+    $('clearFilters').addEventListener('click', () => {
+      ['f-plat', 'f-genre', 'f-mode', 'f-from', 'f-to'].forEach(id => { $(id).value = ''; });
+      $('f-video').checked = true;
+      updateFiltersCount();
+    });
+
+    function formatGame(raw) {
+      let dev = 'Unknown';
+      let pub = 'Unknown';
+      if (raw.involved_companies && raw.involved_companies.length) {
+        const devs = raw.involved_companies.filter(c => c.developer && c.company).map(c => c.company.name);
+        const pubs = raw.involved_companies.filter(c => c.publisher && c.company).map(c => c.company.name);
+        if (devs.length) dev = devs.join(', ');
+        if (pubs.length) pub = pubs.join(', ');
+      }
+
+      let trailerUrl = null;
+      let hasDirectTrailer = false;
+      if (raw.videos && Array.isArray(raw.videos) && raw.videos.length > 0) {
+        const trailerVideo = raw.videos.find(v => v.video_id && v.name && /trailer/i.test(v.name))
+          || raw.videos.find(v => v.video_id);
+        if (trailerVideo && trailerVideo.video_id) {
+          trailerUrl = `https://www.youtube.com/watch?v=${trailerVideo.video_id}`;
+          hasDirectTrailer = true;
+        }
+      }
+      if (!trailerUrl) {
+        trailerUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(raw.name + ' trailer official')}`;
+      }
+
+      const platforms = (raw.platforms && raw.platforms.length)
+        ? raw.platforms.map(p => {
+            const n = p.name;
+            if (n.includes('PC') || n.includes('Windows')) return 'PC';
+            if (n.includes('PlayStation 5')) return 'PS5';
+            if (n.includes('PlayStation 4')) return 'PS4';
+            if (n.includes('Xbox Series')) return 'Xbox Series X|S';
+            if (n.includes('Xbox One')) return 'Xbox One';
+            if (n.includes('Switch')) return 'Nintendo Switch';
+            return n;
+          }).filter((v, i, a) => a.indexOf(v) === i)
+        : ['Multiplatform'];
+
+      const genre = (raw.genres && raw.genres.length) ? raw.genres.map(g => g.name).join(', ') : 'General';
+
+      const metaScore = typeof raw.aggregated_rating === 'number' ? Math.round(raw.aggregated_rating / 10) : null;
+
+      return {
+        id: raw.id,
+        title: raw.name,
+        slug: raw.slug || '',
+        year: raw.first_release_date ? new Date(raw.first_release_date * 1000).getFullYear() : '----',
+        genre,
+        developer: dev,
+        publisher: pub,
+        platforms,
+        cover: (raw.cover && raw.cover.image_id)
+          ? `https://images.igdb.com/igdb/image/upload/t_cover_big/${raw.cover.image_id}.jpg`
+          : 'https://placehold.co/600x900/0f172a/94a3b8?text=Cover+Unavailable',
+        synopsis: raw.summary || raw.storyline || 'Synopsis not registered in IGDB database.',
+        trailerUrl,
+        hasDirectTrailer,
+        metaScore,
+        igdbUrl: raw.url || `https://www.igdb.com/games/${raw.slug || encodeURIComponent(raw.name)}`
+      };
+    }
+
+    async function fetchRandomGame() {
+      const where = buildWhereClause();
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
+
+      try {
+        const res = await fetch(`${API_BASE}/api/random`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({ where, exclude: currentGameId })
+        });        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.error) throw new Error(data.error || data.details || 'Failed to communicate with the server.');
+        if (!data.game) throw new Error('No game returned by the server.');
+        return formatGame(data.game);
+      } catch (apiErr) {
+        try {
+          const countRes = await queryIGDB('games/count', `${where};`);
+          const total = (countRes && typeof countRes.count === 'number') ? countRes.count : 0;
+          if (total === 0) throw new Error('No games found with the selected filters.');
+          const maxOffset = Math.min(total - 1, 4950);
+          const randomOffset = Math.floor(Math.random() * (maxOffset + 1));
+          const list = await queryIGDB('games', `fields name, slug, url, summary, storyline, first_release_date, aggregated_rating, genres.name, platforms.name, cover.image_id, videos.name, videos.video_id, involved_companies.developer, involved_companies.publisher, involved_companies.company.name; ${where}; sort id asc; limit 3; offset ${randomOffset};`);
+          if (!list || !list.length) throw new Error('IGDB response failed.');
+          let pool = list;
+          if (pool.length > 1 && currentGameId) pool = pool.filter(g => g.id !== currentGameId);
+          const raw = pool[Math.floor(Math.random() * pool.length)];
+          return formatGame(raw);
+        } catch (fallbackErr) {
+          throw apiErr && apiErr.name !== 'AbortError' ? apiErr : fallbackErr;
+        }
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+
+    function renderGame(game) {
+      $('gameTitle').innerText = game.title;
+      $('gameYear').innerHTML = `<i class="fa-regular fa-calendar mr-1.5 text-cyan-400"></i> ${game.year}`;
+      $('gameGenreBadge').innerText = game.genre;
+      $('gameDevPub').innerText = `${game.developer} • ${game.publisher}`;
+      $('gameDev').innerText = game.developer;
+      $('gamePub').innerText = game.publisher;
+      $('gameSynopsis').innerText = game.synopsis;
+
+      const coverImg = $('gameCover');
+      coverImg.src = game.cover;
+      coverImg.alt = `Cover of ${game.title}`;
+
+      $('gamePlatforms').innerHTML = game.platforms.map(p => getPlatformBadgeHTML(p)).join('');
+
+      const btnTrailer = $('btnTrailer');
+      btnTrailer.href = game.trailerUrl;
+      btnTrailer.innerHTML = game.hasDirectTrailer
+        ? '<i class="fa-brands fa-youtube text-red-500"></i><span>View Official Trailer</span>'
+        : '<i class="fa-brands fa-youtube text-red-500"></i><span>Search Trailer</span>';
+
+      $('btnGoogle').href = `https://www.google.com/search?q=${encodeURIComponent(game.title + ' game')}`;
+      $('btnIGDB').href = game.igdbUrl;
+
+      const scoreEl = $('gameScore');
+      const labelEl = $('scoreLabel');
+      const badgeAnchor = $('scoreBadgeAnchor');
+
+      badgeAnchor.href = game.igdbUrl;
+      badgeAnchor.title = 'Open game on IGDB';
+
+      if (game.metaScore !== null && game.metaScore !== undefined) {
+        scoreEl.innerText = game.metaScore;
+        if (game.metaScore >= 7.5) {
+          scoreEl.className = 'font-display font-extrabold text-sm px-2 py-0.5 rounded text-white bg-emerald-600 shadow-md shadow-emerald-600/30';
+        } else if (game.metaScore >= 5) {
+          scoreEl.className = 'font-display font-extrabold text-sm px-2 py-0.5 rounded text-slate-950 bg-amber-400 shadow-md shadow-amber-400/30';
+        } else {
+          scoreEl.className = 'font-display font-extrabold text-sm px-2 py-0.5 rounded text-white bg-rose-600 shadow-md shadow-rose-600/30';
+        }
+      } else {
+        scoreEl.innerText = 'tbd';
+        scoreEl.className = 'font-display font-bold text-xs px-2 py-0.5 rounded text-slate-300 bg-slate-800';
+      }
+    }
+
+    async function randomizeGame() {
+      if (isFetching) return;
+      isFetching = true;
+      showError('');
+      playBeepSound();
+
+      const card = $('gameCard');
+      const diceIcon = $('diceIcon');
+      const btn = $('btnRandomize');
+      const btnLabel = $('btnRandomizeLabel');
+
+      btn.disabled = true;
+      btnLabel.textContent = 'DRAWING...';
+      diceIcon.classList.add('animate-spin-once');
+
+      card.classList.remove('scale-100', 'opacity-100');
+      card.classList.add('scale-95', 'opacity-0');
+
+      try {
+        const game = await fetchRandomGame();
+        currentGameId = game.id;
+        await sleep(180);
+        renderGame(game);
+      } catch (err) {
+        console.error(err);
+        showError(err && err.name === 'AbortError'
+          ? 'Timed out. Try again.'
+          : (err && err.message) || 'Could not draw a game.');
+      } finally {
+        card.classList.remove('scale-95', 'opacity-0');
+        card.classList.add('scale-100', 'opacity-100');
+        btnLabel.textContent = 'RANDOMIZE';
+        diceIcon.classList.remove('animate-spin-once');
+        isFetching = false;
+        btn.disabled = availableTotalCount === 0;
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.code === 'KeyR') {
+        const tag = document.activeElement.tagName;
+        if (tag !== 'INPUT' && tag !== 'SELECT' && tag !== 'BUTTON' && tag !== 'SUMMARY') {
+          e.preventDefault();
+          randomizeGame();
+        }
+      }
+    });
+
+    async function populateSelect(selectId, endpoint, query) {
+      const storageKey = `igdb_${endpoint}`;
+      try {
+        const cached = sessionStorage.getItem(storageKey);
+        if (cached) {
+          const items = JSON.parse(cached);
+          const sel = $(selectId);
+          if (items && items.length) {
+            items.forEach(it => {
+              const opt = document.createElement('option');
+              opt.value = it.id;
+              opt.textContent = it.name;
+              sel.appendChild(opt);
+            });
+          }
+          return items;
+        }
+        const items = await queryIGDB(endpoint, query);
+        sessionStorage.setItem(storageKey, JSON.stringify(items || []));
+        const sel = $(selectId);
+        if (items && items.length) {
+          items.forEach(it => {
+            const opt = document.createElement('option');
+            opt.value = it.id;
+            opt.textContent = it.name;
+            sel.appendChild(opt);
+          });
+        }
+        return items;
+      } catch (e) {}
+    }
+
+    async function initApp() {
+      try {
+        const statusRes = await fetch(`${API_BASE}/api/status`, { signal: AbortSignal.timeout(2000) });
+        if (statusRes.ok) {
+          $('igdbPing').className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75';
+          $('igdbDot').className = 'relative inline-flex rounded-full h-2 w-2 bg-emerald-500';
+          $('igdbText').innerText = 'API: Online';
+          $('igdbText').className = 'text-emerald-300 font-semibold';
+        }
+      } catch (e) {
+        $('igdbText').innerText = 'Server Offline';
+      }
+
+      await Promise.all([
+        populateSelect('f-genre', 'genres', 'fields id, name; limit 50; sort name asc;'),
+        populateSelect('f-plat', 'platforms', 'fields id, name; where id = (6, 167, 48, 169, 49, 130, 34, 39, 14); sort name asc;'),
+        populateSelect('f-mode', 'game_modes', 'fields id, name; limit 20; sort name asc;'),
+        updateFiltersCount()
+      ]);
+
+      randomizeGame();
+    }
+
+    window.onload = initApp;
+  </script>
+</body>
+</html>
