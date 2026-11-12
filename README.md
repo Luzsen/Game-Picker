@@ -1,5 +1,7 @@
 # Game Picker
 
+**Live demo:** https://random-game-picker.netlify.app/
+
 Random game picker with cyberpunk glassmorphism design, powered by the IGDB API.
 
 ## Features
